@@ -1,0 +1,1046 @@
+{
+  "version": "1.0.0",
+  "title": "wally-miniscript-satisfier",
+  "phases": [
+    {
+      "id": "phase-1",
+      "number": "1",
+      "name": "Move ms_node + g_builtins to descriptor_int.h",
+      "items": [
+        {
+          "id": "p1-i1",
+          "name": "Move ms_node + g_builtins to descriptor_int.h",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-1.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "number": "2",
+      "name": "Split de8d0d8f \"descriptor: add tr() parser, taptree, and BIP-341 tweak\" into 3 parts",
+      "items": [
+        {
+          "id": "p2-i1",
+          "name": "Split de8d0d8f \"descriptor: add tr() parser, taptree, and BIP-341 tweak\" into 3 parts",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-2.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "number": "3",
+      "name": "Split 5e1ec21a \"descriptor: add taproot leaf and key accessor APIs\" into 3 parts",
+      "items": [
+        {
+          "id": "p3-i1",
+          "name": "Split 5e1ec21a \"descriptor: add taproot leaf and key accessor APIs\" into 3 parts",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-3.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "number": "4",
+      "name": "Split 635f74df \"psbt: add taproot script-path field support and signing\" into 3 parts",
+      "items": [
+        {
+          "id": "p4-i1",
+          "name": "Split 635f74df \"psbt: add taproot script-path field support and signing\" into 3 parts",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-4.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "number": "5",
+      "name": "tk_kind enum + struct token + miniscript_decode.h skeleton",
+      "items": [
+        {
+          "id": "p5-i1",
+          "name": "tk_kind enum + struct token + miniscript_decode.h skeleton",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-5.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "number": "6",
+      "name": "tokenize_script opcode-only path",
+      "items": [
+        {
+          "id": "p6-i1",
+          "name": "tokenize_script opcode-only path",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-6.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "number": "7",
+      "name": "Data tokens KEY32/KEY33/HASH20/HASH32 + 32-byte disambiguation",
+      "items": [
+        {
+          "id": "p7-i1",
+          "name": "Data tokens KEY32/KEY33/HASH20/HASH32 + 32-byte disambiguation",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-7.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-8",
+      "number": "8",
+      "name": "NUM token parsing (script numbers)",
+      "items": [
+        {
+          "id": "p8-i1",
+          "name": "NUM token parsing (script numbers)",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-8.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-9",
+      "number": "9",
+      "name": "Tokenizer unit tests",
+      "items": [
+        {
+          "id": "p9-i1",
+          "name": "Tokenizer unit tests",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-9.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-10",
+      "number": "10",
+      "name": "NonTerm enum + terminal_stack helpers",
+      "items": [
+        {
+          "id": "p10-i1",
+          "name": "NonTerm enum + terminal_stack helpers",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-10.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-11",
+      "number": "11",
+      "name": "decode_script_to_node outer loop",
+      "items": [
+        {
+          "id": "p11-i1",
+          "name": "decode_script_to_node outer loop",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-11.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-12",
+      "number": "12",
+      "name": "Decoder: pk_k / pk_h",
+      "items": [
+        {
+          "id": "p12-i1",
+          "name": "Decoder: pk_k / pk_h",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-12.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-13",
+      "number": "13",
+      "name": "Decoder: hash fragments",
+      "items": [
+        {
+          "id": "p13-i1",
+          "name": "Decoder: hash fragments",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-13.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-14",
+      "number": "14",
+      "name": "Decoder: timelocks",
+      "items": [
+        {
+          "id": "p14-i1",
+          "name": "Decoder: timelocks",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-14.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-15",
+      "number": "15",
+      "name": "Decoder: multi (segwit v0)",
+      "items": [
+        {
+          "id": "p15-i1",
+          "name": "Decoder: multi (segwit v0)",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-15.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-16",
+      "number": "16",
+      "name": "Decoder: multi_a (999 limit from start)",
+      "items": [
+        {
+          "id": "p16-i1",
+          "name": "Decoder: multi_a (999 limit from start)",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-16.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-17",
+      "number": "17",
+      "name": "Decoder: and_v / and_b",
+      "items": [
+        {
+          "id": "p17-i1",
+          "name": "Decoder: and_v / and_b",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-17.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-18",
+      "number": "18",
+      "name": "Decoder: or_* + andor",
+      "items": [
+        {
+          "id": "p18-i1",
+          "name": "Decoder: or_* + andor",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-18.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-19",
+      "number": "19",
+      "name": "Decoder: thresh",
+      "items": [
+        {
+          "id": "p19-i1",
+          "name": "Decoder: thresh",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-19.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-20",
+      "number": "20",
+      "name": "Decoder: wrappers (a:s:c:d:v:j:n:l:u:t:)",
+      "items": [
+        {
+          "id": "p20-i1",
+          "name": "Decoder: wrappers (a:s:c:d:v:j:n:l:u:t:)",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-20.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-21",
+      "number": "21",
+      "name": "ms_witness + ms_satisfaction structs (with failure-reporting fields)",
+      "items": [
+        {
+          "id": "p21-i1",
+          "name": "ms_witness + ms_satisfaction structs (with failure-reporting fields)",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-21.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-22",
+      "number": "22",
+      "name": "satisfaction_best",
+      "items": [
+        {
+          "id": "p22-i1",
+          "name": "satisfaction_best",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-22.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-23",
+      "number": "23",
+      "name": "satisfaction_or_* selectors",
+      "items": [
+        {
+          "id": "p23-i1",
+          "name": "satisfaction_or_* selectors",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-23.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-24",
+      "number": "24",
+      "name": "satisfaction_andor",
+      "items": [
+        {
+          "id": "p24-i1",
+          "name": "satisfaction_andor",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-24.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-25",
+      "number": "25",
+      "name": "satisfaction_thresh (DP + malleability check)",
+      "items": [
+        {
+          "id": "p25-i1",
+          "name": "satisfaction_thresh (DP + malleability check)",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-25.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-26",
+      "number": "26",
+      "name": "satisfy_node outer dispatch + initial docs/source/satisfier.rst",
+      "items": [
+        {
+          "id": "p26-i1",
+          "name": "satisfy_node outer dispatch + initial docs/source/satisfier.rst",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-26.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-27",
+      "number": "27",
+      "name": "Satisfy: pk_k / pk_h",
+      "items": [
+        {
+          "id": "p27-i1",
+          "name": "Satisfy: pk_k / pk_h",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-27.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-28",
+      "number": "28",
+      "name": "Satisfy: hash fragments",
+      "items": [
+        {
+          "id": "p28-i1",
+          "name": "Satisfy: hash fragments",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-28.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-29",
+      "number": "29",
+      "name": "Satisfy: timelocks",
+      "items": [
+        {
+          "id": "p29-i1",
+          "name": "Satisfy: timelocks",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-29.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-30",
+      "number": "30",
+      "name": "Satisfy: multi",
+      "items": [
+        {
+          "id": "p30-i1",
+          "name": "Satisfy: multi",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-30.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-31",
+      "number": "31",
+      "name": "Satisfy: multi_a",
+      "items": [
+        {
+          "id": "p31-i1",
+          "name": "Satisfy: multi_a",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-31.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-32",
+      "number": "32",
+      "name": "Satisfy: and_v / and_b",
+      "items": [
+        {
+          "id": "p32-i1",
+          "name": "Satisfy: and_v / and_b",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-32.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-33",
+      "number": "33",
+      "name": "Satisfy: or_*",
+      "items": [
+        {
+          "id": "p33-i1",
+          "name": "Satisfy: or_*",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-33.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-34",
+      "number": "34",
+      "name": "Satisfy: andor",
+      "items": [
+        {
+          "id": "p34-i1",
+          "name": "Satisfy: andor",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-34.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-35",
+      "number": "35",
+      "name": "Satisfy: thresh",
+      "items": [
+        {
+          "id": "p35-i1",
+          "name": "Satisfy: thresh",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-35.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-36",
+      "number": "36",
+      "name": "Satisfy: wrappers",
+      "items": [
+        {
+          "id": "p36-i1",
+          "name": "Satisfy: wrappers",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-36.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-37",
+      "number": "37",
+      "name": "finalize_p2wsh calling new satisfier",
+      "items": [
+        {
+          "id": "p37-i1",
+          "name": "finalize_p2wsh calling new satisfier",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-37.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-38",
+      "number": "38",
+      "name": "finalize_p2tr_script_path on new satisfier",
+      "items": [
+        {
+          "id": "p38-i1",
+          "name": "finalize_p2tr_script_path on new satisfier",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-38.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-39",
+      "number": "39",
+      "name": "Remap finalize_multisig body",
+      "items": [
+        {
+          "id": "p39-i1",
+          "name": "Remap finalize_multisig body",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-39.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-40",
+      "number": "40",
+      "name": "Remap finalize_csv2of2_1 body",
+      "items": [
+        {
+          "id": "p40-i1",
+          "name": "Remap finalize_csv2of2_1 body",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-40.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-41",
+      "number": "41",
+      "name": "Keep a50ced46 \"tests: add taproot descriptor parsing and address vectors\" tests: taproot descriptor parsing",
+      "items": [
+        {
+          "id": "p41-i1",
+          "name": "Keep a50ced46 \"tests: add taproot descriptor parsing and address vectors\" tests: taproot descriptor parsing",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-41.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-42",
+      "number": "42",
+      "name": "Keep/Amend bbd832ad \"tests: add taproot miniscript and PSBT script-path test functions\" tests: taproot miniscript",
+      "items": [
+        {
+          "id": "p42-i1",
+          "name": "Keep/Amend bbd832ad \"tests: add taproot miniscript and PSBT script-path test functions\" tests: taproot miniscript",
+          "completed": true,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-42.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-43",
+      "number": "43",
+      "name": "Split b56da26c \"musig2: add MuSig2 (BIP-327) C API\" (MuSig2 BIP-327 API) into 6 parts",
+      "items": [
+        {
+          "id": "p43-i1",
+          "name": "Split b56da26c \"musig2: add MuSig2 (BIP-327) C API\" (MuSig2 BIP-327 API) into 6 parts",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-43.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-44",
+      "number": "44",
+      "name": "Split 5ace65aa \"descriptor: support musig() key expressions (BIP-390)\" (musig() descriptor BIP-390) into 3 parts",
+      "items": [
+        {
+          "id": "p44-i1",
+          "name": "Split 5ace65aa \"descriptor: support musig() key expressions (BIP-390)\" (musig() descriptor BIP-390) into 3 parts",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-44.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-45",
+      "number": "45",
+      "name": "Split 6346d02d \"psbt: add BIP-373 MuSig2 fields, signing and finalization\" (PSBT BIP-373 MuSig2) into 6 parts",
+      "items": [
+        {
+          "id": "p45-i1",
+          "name": "Split 6346d02d \"psbt: add BIP-373 MuSig2 fields, signing and finalization\" (PSBT BIP-373 MuSig2) into 6 parts",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-45.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-46",
+      "number": "46",
+      "name": "Keep aafbc5bc \"fuzz: add fuzzers for musig() descriptor and PSBT MuSig2 fields\" fuzz commit",
+      "items": [
+        {
+          "id": "p46-i1",
+          "name": "Keep aafbc5bc \"fuzz: add fuzzers for musig() descriptor and PSBT MuSig2 fields\" fuzz commit",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-46.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-47",
+      "number": "47",
+      "name": "Split acf1d67b \"tests: add MuSig2, descriptor and BIP-327/328/373/390 test suites\" (MuSig2 test suites) into 5 parts",
+      "items": [
+        {
+          "id": "p47-i1",
+          "name": "Split acf1d67b \"tests: add MuSig2, descriptor and BIP-327/328/373/390 test suites\" (MuSig2 test suites) into 5 parts",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-47.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-48",
+      "number": "48",
+      "name": "Split 41a408ae \"docs: document MuSig2 API and add 2-of-2 PSBT example\" (MuSig2 docs) into 2 parts",
+      "items": [
+        {
+          "id": "p48-i1",
+          "name": "Split 41a408ae \"docs: document MuSig2 API and add 2-of-2 PSBT example\" (MuSig2 docs) into 2 parts",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-48.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-49",
+      "number": "49",
+      "name": "Test: pk_k / pk_h",
+      "items": [
+        {
+          "id": "p49-i1",
+          "name": "Test: pk_k / pk_h",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-49.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-50",
+      "number": "50",
+      "name": "Test: hash fragments",
+      "items": [
+        {
+          "id": "p50-i1",
+          "name": "Test: hash fragments",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-50.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-51",
+      "number": "51",
+      "name": "Test: timelocks",
+      "items": [
+        {
+          "id": "p51-i1",
+          "name": "Test: timelocks",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-51.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-52",
+      "number": "52",
+      "name": "Test: multi",
+      "items": [
+        {
+          "id": "p52-i1",
+          "name": "Test: multi",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-52.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-53",
+      "number": "53",
+      "name": "Test: multi_a",
+      "items": [
+        {
+          "id": "p53-i1",
+          "name": "Test: multi_a",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-53.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-54",
+      "number": "54",
+      "name": "Test: and_v / and_b",
+      "items": [
+        {
+          "id": "p54-i1",
+          "name": "Test: and_v / and_b",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-54.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-55",
+      "number": "55",
+      "name": "Test: or_*",
+      "items": [
+        {
+          "id": "p55-i1",
+          "name": "Test: or_*",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-55.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-56",
+      "number": "56",
+      "name": "Test: andor",
+      "items": [
+        {
+          "id": "p56-i1",
+          "name": "Test: andor",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-56.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-57",
+      "number": "57",
+      "name": "Test: thresh",
+      "items": [
+        {
+          "id": "p57-i1",
+          "name": "Test: thresh",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-57.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-58",
+      "number": "58",
+      "name": "Test: wrappers",
+      "items": [
+        {
+          "id": "p58-i1",
+          "name": "Test: wrappers",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-58.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-59",
+      "number": "59",
+      "name": "Test: composite descriptors (Liana template, etc.)",
+      "items": [
+        {
+          "id": "p59-i1",
+          "name": "Test: composite descriptors (Liana template, etc.)",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-59.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-60",
+      "number": "60",
+      "name": "Test: negative cases",
+      "items": [
+        {
+          "id": "p60-i1",
+          "name": "Test: negative cases",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-60.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-61",
+      "number": "61",
+      "name": "Test: BIP-379 vectors imported from rust-miniscript",
+      "items": [
+        {
+          "id": "p61-i1",
+          "name": "Test: BIP-379 vectors imported from rust-miniscript",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-61.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-62",
+      "number": "62",
+      "name": "Test: differential test harness scaffolding",
+      "items": [
+        {
+          "id": "p62-i1",
+          "name": "Test: differential test harness scaffolding",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-62.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-63",
+      "number": "63",
+      "name": "Test: differential corpus runner",
+      "items": [
+        {
+          "id": "p63-i1",
+          "name": "Test: differential corpus runner",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-63.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-64",
+      "number": "64",
+      "name": "Test: regression smoke (existing taproot witnesses identical)",
+      "items": [
+        {
+          "id": "p64-i1",
+          "name": "Test: regression smoke (existing taproot witnesses identical)",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-64.task-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-65",
+      "number": "65",
+      "name": "Update TODO.md to reflect what's done",
+      "items": [
+        {
+          "id": "p65-i1",
+          "name": "Update TODO.md to reflect what's done",
+          "completed": false,
+          "sub_items": [],
+          "linked_task_ids": [
+            "phase-65.task-1"
+          ]
+        }
+      ]
+    }
+  ]
+}
