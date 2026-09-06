@@ -5347,6 +5347,28 @@ done:
     return ret;
 }
 
+/* BIP-341: the internal key is the only key whose signature spends an output
+ * by the key path. Tweaking any other key by the merkle root produces a
+ * signature for a key that does not spend this input.
+ *
+ * BIP-371: a key's TAP_BIP32_DERIVATION lists the hashes of the leaves it
+ * appears in, and the internal key is listed with none. The internal key may
+ * also appear in leaves, so when the input has TAP_INTERNAL_KEY, it decides.
+ * Without it, a key listed with no leaf hashes (`leaf_hashes` NULL or empty)
+ * is taken to be the internal key. */
+static bool psbt_is_taproot_internal_key(const struct wally_psbt_input *inp,
+                                         const struct ext_key *hdkey,
+                                         const struct wally_map_item *leaf_hashes)
+{
+    const struct wally_map_item *ik;
+
+    ik = wally_map_get_integer(&inp->psbt_fields, PSBT_IN_TAP_INTERNAL_KEY);
+    if (ik)
+        return ik->value_len == EC_XONLY_PUBLIC_KEY_LEN &&
+               !memcmp(ik->value, hdkey->pub_key + 1, EC_XONLY_PUBLIC_KEY_LEN);
+    return !leaf_hashes || !leaf_hashes->value_len;
+}
+
 int wally_psbt_sign_input_bip32(struct wally_psbt *psbt,
                                 size_t index, size_t subindex,
                                 const unsigned char *txhash, size_t txhash_len,
@@ -5383,10 +5405,17 @@ int wally_psbt_sign_input_bip32(struct wally_psbt *psbt,
         flags = EC_FLAG_ECDSA | (flags & EC_FLAG_GRIND_R);
     } else {
         /* Schnorr BIP340: Tweak the private key */
-        const struct wally_map_item *p = wally_map_get_integer(&inp->psbt_fields,
-                                                               PSBT_IN_TAP_MERKLE_ROOT);
-        const unsigned char *merkle_root = p ? p->value : NULL;
-        const size_t merkle_root_len = p ? p->value_len : 0;
+        const struct wally_map_item *p;
+        const unsigned char *merkle_root;
+        size_t merkle_root_len;
+
+        if (!psbt_is_taproot_internal_key(inp, hdkey,
+                                          &inp->taproot_leaf_hashes.items[pubkey_idx - 1]))
+            return WALLY_EINVAL; /* Not the internal key: cannot sign key-path */
+
+        p = wally_map_get_integer(&inp->psbt_fields, PSBT_IN_TAP_MERKLE_ROOT);
+        merkle_root = p ? p->value : NULL;
+        merkle_root_len = p ? p->value_len : 0;
 
         ret = wally_ec_private_key_bip341_tweak(hdkey->priv_key + 1, EC_PRIVATE_KEY_LEN,
                                                 merkle_root, merkle_root_len,
@@ -5484,35 +5513,23 @@ int wally_psbt_sign_bip32(struct wally_psbt *psbt,
         }
 
         if (sighash_type == WALLY_SIGTYPE_SW_V1) {
-            /* BIP-371: a key's TAP_BIP32_DERIVATION lists the hashes of the
-             * leaves it appears in, and the internal key is listed with none.
-             * The internal key may also appear in leaves, so when the input
-             * has TAP_INTERNAL_KEY, it decides which key is key-path signed.
-             * A key that is not the internal key is never key-path signed,
-             * which would store an invalid TAP_KEY_SIG. */
-            const struct wally_map_item *ik = wally_map_get_integer(
-                &inp->psbt_fields, PSBT_IN_TAP_INTERNAL_KEY);
-            const bool is_internal = ik && ik->value_len == EC_XONLY_PUBLIC_KEY_LEN &&
-                !memcmp(ik->value, derived.pub_key + 1, EC_XONLY_PUBLIC_KEY_LEN);
+            const struct wally_map_item *lh_item = NULL;
             size_t pubkey_idx = 0;
-            bool has_leaves = false;
             int find_ret = wally_map_find_bip32_public_key_from(
                 &inp->taproot_leaf_hashes, subindex, &derived, &pubkey_idx);
 
             if (find_ret == WALLY_OK && pubkey_idx) {
-                const struct wally_map_item *lh_item =
-                    &inp->taproot_leaf_hashes.items[pubkey_idx - 1];
-                has_leaves = lh_item->value_len > 0;
+                lh_item = &inp->taproot_leaf_hashes.items[pubkey_idx - 1];
                 /* Script-path key: sign for each matching leaf, but only if
                  * the leaf scripts are present. Without them we cannot
                  * script-path sign. */
-                if (has_leaves && inp->taproot_leaf_scripts.num_items > 0)
+                if (lh_item->value_len && inp->taproot_leaf_scripts.num_items > 0)
                     ret = psbt_sign_script_path(psbt, i, tx, inp, lh_item,
                                                 &derived);
             }
-            /* Without TAP_INTERNAL_KEY, a key listed with no leaf hashes is
-             * taken to be the internal key */
-            if (ik ? !is_internal : has_leaves) {
+            /* A key that is not the internal key is never key-path signed,
+             * which would store an invalid TAP_KEY_SIG */
+            if (!psbt_is_taproot_internal_key(inp, &derived, lh_item)) {
                 wally_clear(&derived, sizeof(derived));
                 continue; /* Skip key-path signing for this input */
             }
