@@ -26,6 +26,7 @@ _free_fn_t = CFUNCTYPE(c_void_p)
 _bzero_fn_t = CFUNCTYPE(c_void_p, c_size_t)
 _ec_nonce_fn_t = CFUNCTYPE(c_int, c_void_p, c_void_p, c_void_p, c_void_p, c_void_p, c_uint)
 _secp_context_fn_t = CFUNCTYPE(c_void_p)
+_descriptor_item_fn_t = CFUNCTYPE(c_int, c_uint32, c_size_t, c_char_p, c_size_t, c_void_p, c_char_p_p)
 
 class wally_operations(Structure):
     _fields_ = [('struct_size', c_size_t),
@@ -325,6 +326,9 @@ for f in (
     ('wally_confidential_addr_to_addr_segwit', c_int, [c_char_p, c_char_p, c_char_p, c_char_p_p]),
     ('wally_confidential_addr_to_ec_public_key', c_int, [c_char_p, c_uint32, c_void_p, c_size_t]),
     ('wally_descriptor_canonicalize', c_int, [c_void_p, c_uint32, c_char_p_p]),
+    ('wally_descriptor_translate_items', c_int, [c_void_p, _descriptor_item_fn_t, c_void_p, c_char_p_p]),
+    ('wally_descriptor_translate_keys', c_int, [c_void_p, _descriptor_item_fn_t, c_void_p, c_char_p_p]),
+    ('wally_descriptor_translate_hashes', c_int, [c_void_p, _descriptor_item_fn_t, c_void_p, c_char_p_p]),
     ('wally_descriptor_derive_bip32_key', c_int, [c_void_p, c_size_t, c_uint32, c_uint32, c_uint32, c_uint32, POINTER(ext_key)]),
     ('wally_descriptor_derive_bip32_key_alloc', c_int, [c_void_p, c_size_t, c_uint32, c_uint32, c_uint32, c_uint32, POINTER(POINTER(ext_key))]),
     ('wally_descriptor_free', c_int, [c_void_p]),

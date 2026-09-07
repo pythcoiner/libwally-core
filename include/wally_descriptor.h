@@ -43,6 +43,14 @@ struct wally_descriptor;
 /*** ms-canonicalization-flags Miniscript/Descriptor canonicalization flags */
 #define WALLY_MS_CANONICAL_NO_CHECKSUM 0x01 /** Do not include a checksum */
 
+/*** ms-item-types Miniscript/Descriptor item types */
+#define WALLY_MS_ITEM_KEY       0x01 /** A key expression */
+#define WALLY_MS_ITEM_MUSIG_KEY 0x02 /** A key expression inside a musig() aggregate */
+#define WALLY_MS_ITEM_SHA256    0x03 /** A sha256() hash */
+#define WALLY_MS_ITEM_HASH256   0x04 /** A hash256() hash */
+#define WALLY_MS_ITEM_RIPEMD160 0x05 /** A ripemd160() hash */
+#define WALLY_MS_ITEM_HASH160   0x06 /** A hash160() hash */
+
 #define WALLY_MS_BLINDING_KEY_INDEX 0xffffffff /* Key index for confidential blinding key */
 
 #define WALLY_DESCRIPTOR_TAPTREE_MAX_DEPTH 128 /* BIP-341: maximum taptree depth */
@@ -93,6 +101,97 @@ WALLY_CORE_API int wally_descriptor_free(
 WALLY_CORE_API int wally_descriptor_canonicalize(
     const struct wally_descriptor *descriptor,
     uint32_t flags,
+    char **output);
+
+#ifdef SWIG
+typedef void *wally_descriptor_item_fn_t;
+#else
+
+/**
+ * Return the text to write in place of a descriptor item.
+ *
+ * :param type: :ref:`ms-item-types` giving the kind of item being written.
+ * :param index: The zero-based index of the item among items of its type.
+ *|    For `WALLY_MS_ITEM_KEY` this is its `wally_descriptor_get_key` index, or
+ *|    `WALLY_MS_BLINDING_KEY_INDEX` for a ct() blinding key.
+ * :param item: The item as it appears in the descriptor. Not NUL terminated.
+ * :param item_len: Length of ``item`` in bytes.
+ * :param translation_context: The value passed to `wally_descriptor_translate_items`.
+ * :param output: Destination for the NUL terminated replacement text. It must
+ *|    be no longer than ``item`` and stay valid until this function returns.
+ *|    The consumer keeps ownership: the text is copied before the next call
+ *|    and not freed, so one buffer serves them all.
+ */
+typedef int (*wally_descriptor_item_fn_t)(
+    uint32_t type,
+    size_t index,
+    const char *item,
+    size_t item_len,
+    void *translation_context,
+    const char **output);
+
+#endif /* SWIG */
+
+/**
+ * Generate the descriptor string with every key expression and hash replaced.
+ *
+ * :param descriptor: Parsed output descriptor or miniscript expression.
+ * :param fn: Called once per item, in the order the items appear, to produce
+ *|    the replacement text for each.
+ * :param translation_context: Passed to ``fn`` unchanged.
+ * :param output: Destination for the resulting descriptor, without a checksum.
+ *|    The string returned should be freed using `wally_free_string`.
+ *
+ * A key replacement covers the key expression in full: its key origin, the key
+ * itself and any child path. A musig() aggregate is not itself replaced, its
+ * participants are. A hash replacement covers the hash value alone, not the
+ * fragment around it.
+ */
+WALLY_CORE_API int wally_descriptor_translate_items(
+    const struct wally_descriptor *descriptor,
+    wally_descriptor_item_fn_t fn,
+    void *translation_context,
+    char **output);
+
+/**
+ * Generate the descriptor string with every key expression replaced.
+ *
+ * :param descriptor: Parsed output descriptor or miniscript expression.
+ * :param fn: Called once per key expression, in the order they appear, to
+ *|    produce the replacement text for each. Its type is `WALLY_MS_ITEM_KEY`,
+ *|    or `WALLY_MS_ITEM_MUSIG_KEY` for a key inside a musig() aggregate.
+ * :param translation_context: Passed to ``fn`` unchanged.
+ * :param output: Destination for the resulting descriptor, without a checksum.
+ *|    The string returned should be freed using `wally_free_string`.
+ *
+ * A replacement covers the key expression in full: its key origin, the key
+ * itself and any child path. A musig() aggregate is not itself replaced, its
+ * participants are. Hashes are written as they appear in the descriptor.
+ */
+WALLY_CORE_API int wally_descriptor_translate_keys(
+    const struct wally_descriptor *descriptor,
+    wally_descriptor_item_fn_t fn,
+    void *translation_context,
+    char **output);
+
+/**
+ * Generate the descriptor string with every hash replaced.
+ *
+ * :param descriptor: Parsed output descriptor or miniscript expression.
+ * :param fn: Called once per hash, in the order they appear, to produce the
+ *|    replacement text for each. Its type is one of the hash
+ *|    :ref:`ms-item-types`, telling it which hash function the value is for.
+ * :param translation_context: Passed to ``fn`` unchanged.
+ * :param output: Destination for the resulting descriptor, without a checksum.
+ *|    The string returned should be freed using `wally_free_string`.
+ *
+ * A replacement covers the hash value alone, not the fragment around it. Key
+ * expressions are written as they appear in the descriptor.
+ */
+WALLY_CORE_API int wally_descriptor_translate_hashes(
+    const struct wally_descriptor *descriptor,
+    wally_descriptor_item_fn_t fn,
+    void *translation_context,
     char **output);
 
 /**

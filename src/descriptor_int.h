@@ -147,6 +147,11 @@ typedef struct ms_node_t {
     char wrapper_str[12];
     unsigned short flags; /* WALLY_MS_IS_ flags */
     unsigned char builtin;
+    /* The key expression or hash in ms_ctx->src, a key's origin and child
+     * path included. item_len is 0 if the node is neither. */
+    uint32_t item_start;
+    uint32_t item_len;
+    unsigned char item_type;
 } ms_node;
 
 typedef struct wally_descriptor ms_ctx;

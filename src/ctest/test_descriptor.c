@@ -3243,6 +3243,411 @@ done_psbt:
     return ok;
 }
 
+static int copy_item(const char *item, size_t item_len,
+                     char *buf, size_t buf_len, const char **output)
+{
+    if (item_len >= buf_len)
+        return WALLY_ERROR;
+    memcpy(buf, item, item_len);
+    buf[item_len] = '\0';
+    *output = buf;
+    return WALLY_OK;
+}
+
+/* Rebuild key expression `index` from wally's own accessors, so an identity
+ * translation must reproduce the canonical descriptor byte for byte. */
+static int identity_item_fn(uint32_t type, size_t index,
+                            const char *item, size_t item_len,
+                            void *translation_context, const char **output)
+{
+    static char buf[512];
+    struct wally_descriptor *descriptor = translation_context;
+    char *key = NULL, *origin = NULL, *child = NULL, *fp_hex = NULL;
+    unsigned char fingerprint[4];
+    int written, len = 0;
+
+    if (type != WALLY_MS_ITEM_KEY)
+        return copy_item(item, item_len, buf, sizeof(buf), output); /* Verbatim */
+
+    buf[0] = '\0';
+    if (wally_descriptor_get_key_origin_fingerprint(descriptor, index,
+                                                    fingerprint, 4) == WALLY_OK) {
+        if (wally_hex_from_bytes(fingerprint, 4, &fp_hex) != WALLY_OK)
+            return WALLY_ENOMEM;
+        wally_descriptor_get_key_origin_path_str(descriptor, index, &origin);
+        written = snprintf(buf + len, sizeof(buf) - len, "[%s%s%s]", fp_hex,
+                           origin && *origin ? "/" : "", origin ? origin : "");
+        wally_free_string(fp_hex);
+        wally_free_string(origin);
+        if (written < 0 || (size_t)written >= sizeof(buf) - len)
+            return WALLY_ERROR; /* Truncated */
+        len += written;
+    }
+    if (wally_descriptor_get_key(descriptor, index, &key) != WALLY_OK)
+        return WALLY_ERROR;
+    written = snprintf(buf + len, sizeof(buf) - len, "%s", key);
+    wally_free_string(key);
+    if (written < 0 || (size_t)written >= sizeof(buf) - len)
+        return WALLY_ERROR; /* Truncated */
+    len += written;
+    if (wally_descriptor_get_key_child_path_str(descriptor, index,
+                                                &child) == WALLY_OK &&
+        child && *child) {
+        written = snprintf(buf + len, sizeof(buf) - len, "/%s", child);
+        if (written < 0 || (size_t)written >= sizeof(buf) - len) {
+            wally_free_string(child);
+            return WALLY_ERROR; /* Truncated */
+        }
+    }
+    wally_free_string(child);
+    *output = buf;
+    return WALLY_OK;
+}
+
+static const char *item_type_name(uint32_t type)
+{
+    switch (type) {
+    case WALLY_MS_ITEM_SHA256:
+        return "s";
+    case WALLY_MS_ITEM_HASH256:
+        return "d";
+    case WALLY_MS_ITEM_RIPEMD160:
+        return "r";
+    case WALLY_MS_ITEM_HASH160:
+        return "h";
+    }
+    return NULL;
+}
+
+/* Names each item by its type and index, reusing one buffer between calls to
+ * prove translate_items copies what it is given. */
+static int letter_item_fn(uint32_t type, size_t index,
+                          const char *item, size_t item_len,
+                          void *translation_context, const char **output)
+{
+    static char buf[8];
+    const char *name;
+    (void)item;
+    (void)item_len;
+    (void)translation_context;
+
+    if (type == WALLY_MS_ITEM_KEY || type == WALLY_MS_ITEM_MUSIG_KEY) {
+        buf[0] = (char)((type == WALLY_MS_ITEM_KEY ? 'A' : 'a') + index);
+        buf[1] = '\0';
+    } else if (!(name = item_type_name(type)))
+        return WALLY_ERROR; /* Unknown item type */
+    else
+        snprintf(buf, sizeof(buf), "%s%zu", name, index);
+    *output = buf;
+    return WALLY_OK;
+}
+
+static int failing_item_fn(uint32_t type, size_t index,
+                           const char *item, size_t item_len,
+                           void *translation_context, const char **output)
+{
+    (void)type;
+    (void)index;
+    (void)item;
+    (void)item_len;
+    (void)translation_context;
+    (void)output;
+    return WALLY_EINVAL;
+}
+
+/* Longer than any item in the descriptors below */
+static int long_item_fn(uint32_t type, size_t index,
+                        const char *item, size_t item_len,
+                        void *translation_context, const char **output)
+{
+    (void)type;
+    (void)index;
+    (void)item;
+    (void)item_len;
+    (void)translation_context;
+    *output = "0123456789012345678901234567890123456789012345678901234567890123456789";
+    return WALLY_OK;
+}
+
+static bool check_translate_items_bad_args(void)
+{
+    struct wally_descriptor *descriptor = NULL;
+    char *out = (char *)1;
+    bool ok;
+
+    if (wally_descriptor_parse("wpkh(038bc7431d9285a064b0328b6333f3a20b86664437b6de8f4e26e6bbdee258f048)",
+                               NULL, WALLY_NETWORK_BITCOIN_MAINNET, 0,
+                               &descriptor) != WALLY_OK)
+        return false;
+
+    ok = wally_descriptor_translate_items(NULL, letter_item_fn, NULL, &out) == WALLY_EINVAL &&
+         !out &&
+         wally_descriptor_translate_items(descriptor, NULL, NULL, &out) == WALLY_EINVAL &&
+         !out &&
+         wally_descriptor_translate_items(descriptor, letter_item_fn, NULL, NULL) == WALLY_EINVAL &&
+         !out;
+    if (!ok)
+        printf("  bad args not rejected\n");
+
+    /* A replacement longer than the item it replaces cannot be written */
+    if (ok) {
+        ok = wally_descriptor_translate_items(descriptor, long_item_fn,
+                                              NULL, &out) == WALLY_EINVAL && !out;
+        if (!ok)
+            printf("  over-long replacement not rejected\n");
+    }
+
+    wally_descriptor_free(descriptor);
+    return ok;
+}
+
+/* Each wrapper replaces its own items and writes the rest as they are */
+static bool check_translate_wrappers(void)
+{
+    const char *key = "038bc7431d9285a064b0328b6333f3a20b86664437b6de8f4e26e6bbdee258f048";
+    const char *sha = "6c60f404f8167a38fc70eaf8aa17ac351023bef86bcb9d1086a19afe95bd5333";
+    const char *rmd = "1b0f3c404d12075c68c938f9f60ebea4f74941a0";
+    const char *sha2 = "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b";
+    const char *musig = "tr(musig(xpub661MyMwAqRbcFLxggutdSjc4UfcPnJWpfZDvstBtgfXFUhr5jXRoZasQtXdhRFSXzGVLNvjt9QPziNBkPy2Vaud6meNhrF8TJoUy13xEa2R,"
+                        "xpub6DkFAXWQ2dHxq2vatrt9qyA3bXYU4ToWQwCHbf5XB2mSTexcHZCeKS1VZYcPoBd5X8yVcbXFHJR9R8UCVpt82VX1VhR28mCyxUFL4r6KFrf)/<0;1>/*)";
+    char descriptor_str[1024], expected[1024];
+    struct wally_descriptor *descriptor = NULL;
+    char *out = NULL;
+    bool ok;
+
+    snprintf(descriptor_str, sizeof(descriptor_str),
+             "wsh(and_v(v:pk(%s),andor(sha256(%s),hash256(%s),"
+             "and_v(v:ripemd160(%s),and_v(v:hash160(%s),sha256(%s))))))",
+             key, sha, sha, rmd, rmd, sha2);
+    if (wally_descriptor_parse(descriptor_str, NULL,
+                               WALLY_NETWORK_BITCOIN_MAINNET, 0,
+                               &descriptor) != WALLY_OK)
+        return false;
+
+    /* Keys only: every hash byte for byte as it went in */
+    snprintf(expected, sizeof(expected),
+             "wsh(and_v(v:pk(A),andor(sha256(%s),hash256(%s),"
+             "and_v(v:ripemd160(%s),and_v(v:hash160(%s),sha256(%s))))))",
+             sha, sha, rmd, rmd, sha2);
+    ok = wally_descriptor_translate_keys(descriptor, letter_item_fn,
+                                         NULL, &out) == WALLY_OK &&
+         out && !strcmp(out, expected);
+    if (!ok)
+        printf("  keys got  %s\n  keys want %s\n", out ? out : "(null)", expected);
+    wally_free_string(out);
+    out = NULL;
+
+    /* Hashes only: the key untouched, and it takes no hash index */
+    if (ok) {
+        snprintf(expected, sizeof(expected),
+                 "wsh(and_v(v:pk(%s),andor(sha256(s0),hash256(d0),"
+                 "and_v(v:ripemd160(r0),and_v(v:hash160(h0),sha256(s1))))))", key);
+        ok = wally_descriptor_translate_hashes(descriptor, letter_item_fn,
+                                               NULL, &out) == WALLY_OK &&
+             out && !strcmp(out, expected);
+        if (!ok)
+            printf("  hashes got  %s\n  hashes want %s\n",
+                   out ? out : "(null)", expected);
+        wally_free_string(out);
+        out = NULL;
+    }
+    wally_descriptor_free(descriptor);
+    descriptor = NULL;
+
+    /* A musig() aggregate is not an item, its participants are; the hashes
+     * wrapper leaves the descriptor alone without calling back. */
+    if (ok && wally_descriptor_parse(musig, NULL, WALLY_NETWORK_BITCOIN_MAINNET,
+                                     0, &descriptor) != WALLY_OK)
+        return false;
+    if (ok) {
+        ok = wally_descriptor_translate_keys(descriptor, letter_item_fn,
+                                             NULL, &out) == WALLY_OK &&
+             out && !strcmp(out, "tr(musig(a,b)/<0;1>/*)");
+        if (!ok)
+            printf("  musig keys got %s\n", out ? out : "(null)");
+        wally_free_string(out);
+        out = NULL;
+    }
+    if (ok) {
+        ok = wally_descriptor_translate_hashes(descriptor, failing_item_fn,
+                                               NULL, &out) == WALLY_OK &&
+             out && !strcmp(out, musig);
+        if (!ok)
+            printf("  musig hashes got %s\n", out ? out : "(null)");
+        wally_free_string(out);
+    }
+
+    wally_descriptor_free(descriptor);
+    return ok;
+}
+
+static bool check_translate_wrappers_bad_args(void)
+{
+    struct wally_descriptor *descriptor = NULL;
+    char *out = (char *)1;
+    bool ok;
+
+    if (wally_descriptor_parse("wpkh(038bc7431d9285a064b0328b6333f3a20b86664437b6de8f4e26e6bbdee258f048)",
+                               NULL, WALLY_NETWORK_BITCOIN_MAINNET, 0,
+                               &descriptor) != WALLY_OK)
+        return false;
+
+    ok = wally_descriptor_translate_keys(NULL, letter_item_fn, NULL, &out) == WALLY_EINVAL &&
+         !out &&
+         wally_descriptor_translate_keys(descriptor, NULL, NULL, &out) == WALLY_EINVAL &&
+         !out &&
+         wally_descriptor_translate_keys(descriptor, letter_item_fn, NULL, NULL) == WALLY_EINVAL &&
+         wally_descriptor_translate_hashes(NULL, letter_item_fn, NULL, &out) == WALLY_EINVAL &&
+         !out &&
+         wally_descriptor_translate_hashes(descriptor, NULL, NULL, &out) == WALLY_EINVAL &&
+         !out &&
+         wally_descriptor_translate_hashes(descriptor, letter_item_fn, NULL, NULL) == WALLY_EINVAL &&
+         !out;
+    if (!ok)
+        printf("  wrapper bad args not rejected\n");
+
+    /* A failing key callback fails the call and yields nothing */
+    if (ok) {
+        ok = wally_descriptor_translate_keys(descriptor, failing_item_fn,
+                                             NULL, &out) != WALLY_OK && !out;
+        if (!ok)
+            printf("  failing keys callback not propagated\n");
+    }
+
+    wally_descriptor_free(descriptor);
+    return ok;
+}
+
+/* A descriptor with no items is copied through, without calling the callback */
+static bool check_translate_no_items(void)
+{
+    const char *src = "addr(bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4)";
+    struct wally_descriptor *descriptor = NULL;
+    char *out = NULL;
+    bool ok;
+
+    if (wally_descriptor_parse(src, NULL, WALLY_NETWORK_BITCOIN_MAINNET, 0,
+                               &descriptor) != WALLY_OK)
+        return false;
+
+    ok = wally_descriptor_translate_items(descriptor, failing_item_fn,
+                                          NULL, &out) == WALLY_OK &&
+         out && !strcmp(out, src);
+    if (!ok)
+        printf("  item-less descriptor not copied through\n");
+    wally_free_string(out);
+    wally_descriptor_free(descriptor);
+    return ok;
+}
+
+static bool check_translate_items_case(const char *descriptor_str,
+                                       const char *expected)
+{
+    struct wally_descriptor *descriptor = NULL, *reparsed = NULL;
+    char *canonical = NULL, *translated = NULL;
+    bool ok = false;
+
+    if (wally_descriptor_parse(descriptor_str, NULL,
+                               WALLY_NETWORK_BITCOIN_MAINNET, 0,
+                               &descriptor) != WALLY_OK)
+        return false;
+
+    /* An identity translation must reproduce the canonical descriptor, proving
+     * every item's extent is found exactly, and must parse back. */
+    if (wally_descriptor_canonicalize(descriptor, WALLY_MS_CANONICAL_NO_CHECKSUM,
+                                      &canonical) != WALLY_OK ||
+        wally_descriptor_translate_items(descriptor, identity_item_fn,
+                                         descriptor, &translated) != WALLY_OK)
+        printf("  identity translation failed\n");
+    else if (strcmp(canonical, translated))
+        printf("  identity got  %s\n  identity want %s\n", translated, canonical);
+    else if (wally_descriptor_parse(translated, NULL,
+                                    WALLY_NETWORK_BITCOIN_MAINNET, 0,
+                                    &reparsed) != WALLY_OK)
+        printf("  identity result does not parse back\n");
+    else
+        ok = true;
+    wally_descriptor_free(reparsed);
+
+    if (ok) {
+        wally_free_string(translated);
+        translated = NULL;
+        /* Substituting names replaces origin, key and child path together. */
+        ok = wally_descriptor_translate_items(descriptor, letter_item_fn,
+                                              NULL, &translated) == WALLY_OK &&
+             !strcmp(translated, expected);
+        if (!ok && translated)
+            printf("  got  %s\n  want %s\n", translated, expected);
+    }
+
+    /* A failing callback fails the call and yields nothing. */
+    if (ok) {
+        char *unused = (char *)1;
+        ok = wally_descriptor_translate_items(descriptor, failing_item_fn,
+                                              NULL, &unused) != WALLY_OK &&
+             !unused;
+        if (!ok)
+            printf("  failing callback not propagated\n");
+    }
+
+    wally_free_string(canonical);
+    wally_free_string(translated);
+    wally_descriptor_free(descriptor);
+    return ok;
+}
+
+static bool test_translate_items(void)
+{
+    /* A taptree naming one signer at several accounts, an unspendable internal
+     * key with no origin, and multipath children throughout. */
+    if (!check_translate_items_case(
+            "tr(xpub661MyMwAqRbcFLxggutdSjc4UfcPnJWpfZDvstBtgfXFUhr5jXRoZasQtXdhRFSXzGVLNvjt9QPziNBkPy2Vaud6meNhrF8TJoUy13xEa2R/<0;1>/*,"
+            "{multi_a(2,[73c5da0a/48'/0'/0'/2']xpub6DkFAXWQ2dHxq2vatrt9qyA3bXYU4ToWQwCHbf5XB2mSTexcHZCeKS1VZYcPoBd5X8yVcbXFHJR9R8UCVpt82VX1VhR28mCyxUFL4r6KFrf/<0;1>/*,"
+            "[b8688df1/48'/0'/0'/2']xpub6FQya7zGhR92kacYsNnjreouvnHJMpXYsUXnW6NJJAJRCKsa26TzDy4LdnGhEurr3d6y1J8PJ7EEMKQp74XTqYvmGJNogYXSKDszYHtF8mX/<0;1>/*),"
+            "and_v(v:multi_a(2,[73c5da0a/48'/0'/1'/2']xpub6DzhyrnFFYQ1HimDiM388xHnDiRPNdZJFBmmxge3Y1WWcHLtMJLfRuhRHqnQCPbTj3fGKTuKFLHzzwpJkp5Dtc3UtLKZKaVZe1yqMBXd6Vk/<0;1>/*,"
+            "[b8688df1/48'/0'/1'/2']xpub6EAMBJLn1jiquajTsNRkZXU1oKnA4WJMNvcz4FRR4QmFKdfHxJVvfRLoysWfcc16AMTR4CoMD8UNjvs9JtbsLeuLwpTczgq8zuuERnp8YZF/<0;1>/*,"
+            "[28645006/48'/0'/1'/2']xpub6F6gx8ZP9R3R3eYsU2PeS5EPJ4jN7Wbt9uwyHNXLoaJxQjNT92FGAfCNDjUDRhCHwzjfgDuqAZ7Gk9SugPRMa6A8PnzLVvnyEKBW9jHRGRp/<0;1>/*),"
+            "older(65535))})",
+            "tr(A,{multi_a(2,B,C),and_v(v:multi_a(2,D,E,F),older(65535))})"))
+        return false;
+
+    /* One key expression named twice, differing only in its child path. */
+    if (!check_translate_items_case(
+            "wsh(or_d(pk([00000000/48'/0'/0'/2']xpub6CatWdiZiodmUeTDp8LT5or8nmbKNcuyvz7WyksVFkKB4RHwCD3XyuvPEbvqAQY3rAPshWcMLoP2fMFMKHPJ4ZeZXYVUhLv1VMrjPC7PW6V/0/*),"
+            "and_v(v:pkh([00000000/48'/0'/0'/2']xpub6CatWdiZiodmUeTDp8LT5or8nmbKNcuyvz7WyksVFkKB4RHwCD3XyuvPEbvqAQY3rAPshWcMLoP2fMFMKHPJ4ZeZXYVUhLv1VMrjPC7PW6V/2/*),older(144))))",
+            "wsh(or_d(pk(A),and_v(v:pkh(B),older(144))))"))
+        return false;
+
+    /* Raw keys, no origins and no child paths. */
+    if (!check_translate_items_case(
+            "wsh(multi(2,038bc7431d9285a064b0328b6333f3a20b86664437b6de8f4e26e6bbdee258f048,"
+            "03a22745365f673e658f0d25eb0afa9aaece858c6a48dfe37a67210c2e23da8ce7))",
+            "wsh(multi(2,A,B))"))
+        return false;
+
+    /* Every hash fragment, with sha256 twice so its own counter advances. */
+    if (!check_translate_items_case(
+            "wsh(and_v(v:pk(038bc7431d9285a064b0328b6333f3a20b86664437b6de8f4e26e6bbdee258f048),"
+            "andor(sha256(6c60f404f8167a38fc70eaf8aa17ac351023bef86bcb9d1086a19afe95bd5333),"
+            "hash256(6c60f404f8167a38fc70eaf8aa17ac351023bef86bcb9d1086a19afe95bd5333),"
+            "and_v(v:ripemd160(1b0f3c404d12075c68c938f9f60ebea4f74941a0),"
+            "and_v(v:hash160(1b0f3c404d12075c68c938f9f60ebea4f74941a0),"
+            "sha256(4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b))))))",
+            "wsh(and_v(v:pk(A),andor(sha256(s0),hash256(d0),"
+            "and_v(v:ripemd160(r0),and_v(v:hash160(h0),sha256(s1))))))"))
+        return false;
+
+    /* A musig() aggregate is not an item, each of its participants is. */
+    if (!check_translate_items_case(
+            "tr(musig(xpub661MyMwAqRbcFLxggutdSjc4UfcPnJWpfZDvstBtgfXFUhr5jXRoZasQtXdhRFSXzGVLNvjt9QPziNBkPy2Vaud6meNhrF8TJoUy13xEa2R,"
+            "xpub6DkFAXWQ2dHxq2vatrt9qyA3bXYU4ToWQwCHbf5XB2mSTexcHZCeKS1VZYcPoBd5X8yVcbXFHJR9R8UCVpt82VX1VhR28mCyxUFL4r6KFrf)/<0;1>/*)",
+            "tr(musig(a,b)/<0;1>/*)"))
+        return false;
+
+    return check_translate_no_items() && check_translate_items_bad_args() &&
+           check_translate_wrappers() && check_translate_wrappers_bad_args();
+}
+
 int main(void)
 {
     bool tests_ok = true;
@@ -3276,6 +3681,11 @@ int main(void)
 
     if (!test_psbt_taproot_scriptpath()) {
         printf("[test_psbt_taproot_scriptpath] failed!\n");
+        tests_ok = false;
+    }
+
+    if (!test_translate_items()) {
+        printf("[test_translate_items] failed!\n");
         tests_ok = false;
     }
 

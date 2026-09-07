@@ -1734,7 +1734,7 @@ static int generate_sh_wpkh(ms_ctx *ctx, ms_node *node,
     ms_node sh_node = { NULL, node, NULL, KIND_DESCRIPTOR_SH,
                         TYPE_NONE, 0, NULL, NULL, 0, 0,
                         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                        0, builtin_sh_index };
+                        0, builtin_sh_index, 0, 0, 0 };
 
     if (ctx->variant != 3)
         return WALLY_ERROR; /* Should only be called to generate sh-wpkh */
@@ -2967,6 +2967,13 @@ static int analyze_miniscript_key(ms_ctx *ctx, uint32_t flags,
     if (!node || (parent && !parent->builtin))
         return WALLY_EINVAL;
 
+    if (ctx->src) {
+        node->item_start = (uint32_t)(node->data - ctx->src);
+        node->item_len = node->data_len;
+        node->item_type = parent && node_is_musig(parent) ?
+            WALLY_MS_ITEM_MUSIG_KEY : WALLY_MS_ITEM_KEY;
+    }
+
     /*
      * key origin identification
      * https://github.com/bitcoin/bitcoin/blob/master/doc/descriptors.md#key-origin-identification
@@ -3124,6 +3131,22 @@ static int analyze_miniscript_key(ms_ctx *ctx, uint32_t flags,
     return ret;
 }
 
+/* The item type of a hash fragments argument, or 0 if `kind` is not one */
+static unsigned char hash_item_type(uint32_t kind)
+{
+    switch (kind) {
+    case KIND_MINISCRIPT_SHA256:
+        return WALLY_MS_ITEM_SHA256;
+    case KIND_MINISCRIPT_HASH256:
+        return WALLY_MS_ITEM_HASH256;
+    case KIND_MINISCRIPT_RIPEMD160:
+        return WALLY_MS_ITEM_RIPEMD160;
+    case KIND_MINISCRIPT_HASH160:
+        return WALLY_MS_ITEM_HASH160;
+    }
+    return 0;
+}
+
 static int analyze_miniscript_value(ms_ctx *ctx, const char *str, size_t str_len,
                                     uint32_t flags, ms_node *node, ms_node *parent)
 {
@@ -3136,9 +3159,9 @@ static int analyze_miniscript_value(ms_ctx *ctx, const char *str, size_t str_len
 
     if (parent) {
         const uint32_t kind = parent->kind;
-        if (kind == KIND_DESCRIPTOR_RAW || kind == KIND_MINISCRIPT_SHA256 ||
-            kind == KIND_MINISCRIPT_HASH256 || kind == KIND_MINISCRIPT_RIPEMD160 ||
-            kind == KIND_MINISCRIPT_HASH160 || kind == KIND_DESCRIPTOR_SLIP77) {
+        const unsigned char hash_type = hash_item_type(kind);
+        if (kind == KIND_DESCRIPTOR_RAW || hash_type ||
+            kind == KIND_DESCRIPTOR_SLIP77) {
             int ret;
             if (kind == KIND_DESCRIPTOR_SLIP77 && str_len != 64)
                 ret = WALLY_EINVAL; /* slip77 blinding keys must be 32 bytes */
@@ -3157,6 +3180,11 @@ static int analyze_miniscript_value(ms_ctx *ctx, const char *str, size_t str_len
                         ctx->features |= (WALLY_MS_IS_ELEMENTS | WALLY_MS_IS_SLIP77);
                     }
                 }
+            }
+            if (ret == WALLY_OK && ctx->src && hash_type) {
+                node->item_start = (uint32_t)(str - ctx->src);
+                node->item_len = (uint32_t)str_len;
+                node->item_type = hash_type;
             }
             return ret;
         }
@@ -4195,6 +4223,164 @@ static int format_key_node(const struct wally_descriptor *descriptor,
         return WALLY_OK;
     }
     return WALLY_ERROR; /* Unknown key type */
+}
+
+/* Which items go to the callback; the rest are written as they are */
+#define TRANSLATE_KEYS   0x1
+#define TRANSLATE_HASHES 0x2
+
+#define DESCRIPTOR_ITEM_TYPES (WALLY_MS_ITEM_HASH160 + 1)
+
+/* State for writing a descriptor with its items replaced */
+typedef struct {
+    const ms_ctx *descriptor;
+    uint32_t item_types;  /* TRANSLATE_ items to give the callback */
+    size_t src_len;       /* Length of descriptor->src without its checksum */
+    size_t src_consumed;  /* Bytes of descriptor->src consumed */
+    char *out;            /* Translated descriptor, src_len + 1 bytes */
+    size_t out_written;   /* Bytes of out written */
+    size_t item_types_seen[DESCRIPTOR_ITEM_TYPES]; /* Items written, by item type */
+    wally_descriptor_item_fn_t fn;
+    void *translation_context;
+} ms_translate;
+
+/* Append bytes to the end of the translated descriptor output string */
+static void out_append(ms_translate *state, const char *bytes, size_t bytes_len)
+{
+    memcpy(state->out + state->out_written, bytes, bytes_len);
+    state->out_written += bytes_len;
+}
+
+/* The index wally_descriptor_get_key() uses for this key node */
+static bool key_node_index(const ms_ctx *descriptor, const ms_node *node,
+                           size_t *key_index)
+{
+    size_t i;
+
+    for (i = 0; i < descriptor->keys.num_items; ++i)
+        if ((const ms_node *)descriptor->keys.items[i].value == node) {
+            *key_index = i;
+            return true;
+        }
+    if (descriptor_get_key(descriptor, WALLY_MS_BLINDING_KEY_INDEX) == node) {
+        *key_index = WALLY_MS_BLINDING_KEY_INDEX;
+        return true;
+    }
+    return false;
+}
+
+static int translate_item(ms_translate *state, const ms_node *node)
+{
+    const bool is_key = node->item_type == WALLY_MS_ITEM_KEY ||
+                        node->item_type == WALLY_MS_ITEM_MUSIG_KEY;
+    const char *item = state->descriptor->src + node->item_start;
+    const char *replacement = NULL;
+    size_t index, replacement_len;
+    int ret;
+
+    if (node->item_start < state->src_consumed || /* Overlaps the last item */
+        node->item_start + node->item_len > state->src_len) /* Ends after source END */
+        return WALLY_ERROR;
+
+    if (!(state->item_types & (is_key ? TRANSLATE_KEYS : TRANSLATE_HASHES)))
+        return WALLY_OK;
+
+    if (node->item_type == WALLY_MS_ITEM_KEY) {
+        if (!key_node_index(state->descriptor, node, &index))
+            return WALLY_ERROR; /* Key is not one of the descriptors keys */
+    } else
+        index = state->item_types_seen[node->item_type]++;
+
+    ret = state->fn(node->item_type, index, item, node->item_len,
+                    state->translation_context, &replacement);
+    if (ret != WALLY_OK)
+        return ret;
+    if (!replacement)
+        return WALLY_EINVAL; /* No replacement given */
+    replacement_len = strlen(replacement);
+    if (replacement_len > node->item_len)
+        return WALLY_EINVAL; /* Longer than the item it replaces */
+
+    /* Copied here, so the callback may reuse its buffer */
+    out_append(state, state->descriptor->src + state->src_consumed,
+               node->item_start - state->src_consumed);
+    out_append(state, replacement, replacement_len);
+    state->src_consumed = node->item_start + node->item_len;
+    return WALLY_OK;
+}
+
+/* Translate the items of `node` and its siblings, in the order they appear.
+ * An item is never nested inside another, so items end the descent. */
+static int translate_nodes(ms_translate *state, const ms_node *node)
+{
+    int ret = WALLY_OK;
+
+    for (; node && ret == WALLY_OK; node = node->next)
+        ret = node->item_len ? translate_item(state, node)
+                             : translate_nodes(state, node->child);
+    return ret;
+}
+
+static int translate_items(const struct wally_descriptor *descriptor,
+                           uint32_t item_types, wally_descriptor_item_fn_t fn,
+                           void *translation_context, char **output)
+{
+    ms_translate state;
+    int ret;
+
+    if (output)
+        *output = NULL;
+
+    if (!descriptor || !descriptor->src || !fn || !output ||
+        descriptor->src_len < DESCRIPTOR_CHECKSUM_LENGTH + 1)
+        return WALLY_EINVAL;
+
+    wally_clear(&state, sizeof(state));
+    state.descriptor = descriptor;
+    state.item_types = item_types;
+    /* src always ends in a checksum, which the translation does not carry */
+    state.src_len = descriptor->src_len - (DESCRIPTOR_CHECKSUM_LENGTH + 1);
+    state.fn = fn;
+    state.translation_context = translation_context;
+    if (!(state.out = wally_malloc(state.src_len + 1)))
+        return WALLY_ENOMEM;
+
+    ret = translate_nodes(&state, descriptor->top_node);
+    if (ret != WALLY_OK) {
+        wally_free(state.out);
+        return ret;
+    }
+
+    /* Write the descriptor tail */
+    out_append(&state, descriptor->src + state.src_consumed,
+               state.src_len - state.src_consumed);
+    state.out[state.out_written] = '\0';
+    *output = state.out;
+    return WALLY_OK;
+}
+
+int wally_descriptor_translate_items(const struct wally_descriptor *descriptor,
+                                     wally_descriptor_item_fn_t fn,
+                                     void *translation_context, char **output)
+{
+    return translate_items(descriptor, TRANSLATE_KEYS | TRANSLATE_HASHES,
+                           fn, translation_context, output);
+}
+
+int wally_descriptor_translate_keys(const struct wally_descriptor *descriptor,
+                                    wally_descriptor_item_fn_t fn,
+                                    void *translation_context, char **output)
+{
+    return translate_items(descriptor, TRANSLATE_KEYS,
+                           fn, translation_context, output);
+}
+
+int wally_descriptor_translate_hashes(const struct wally_descriptor *descriptor,
+                                      wally_descriptor_item_fn_t fn,
+                                      void *translation_context, char **output)
+{
+    return translate_items(descriptor, TRANSLATE_HASHES,
+                           fn, translation_context, output);
 }
 
 int wally_descriptor_get_key(const struct wally_descriptor *descriptor,
